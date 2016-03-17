@@ -1,4 +1,5 @@
 This project is following the phoboslab/jsmpeg-vnc project. 
+
 We modified the ./client/index.html  and  ./client/jsmpg-vnc.js file.
 
 You can simply download bin.zip and run start.exe to run the server.
@@ -40,4 +41,4 @@ The client application (the thing that runs in the browser) is very rudimentary.
 
 jsmpeg-vnc is published under the [GPLv3 License](http://www.gnu.org/licenses/gpl-3.0.en.html).
 
-If you require my code under a different license, or need some consulting work regarding jsmpeg/jsmpeg-vnc, get in touch: dominic@phoboslab.org
+Email: kaichengshou@gmail.com
