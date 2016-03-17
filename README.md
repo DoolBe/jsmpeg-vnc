@@ -1,11 +1,9 @@
-# jsmpeg-vnc
+This project is following the phoboslab/jsmpeg-vnc project. 
+We modified the ./client/index.html  and  ./client/jsmpg-vnc.js file.
 
-A low latency, high framerate screen sharing server and client, viewable in any modern browser.
+You can simply download bin.zip and run start.exe to run the server.
 
-[More Info & Demo Video](http://phoboslab.org/log/2015/07/play-gta-v-in-your-browser-sort-of)
-
-[Download Binaries](https://github.com/phoboslab/jsmpeg-vnc/releases)
-
+Or you can follow the instruction to run jsmpeg-vnc.exe , but remember to use 640X480 scaling.
 
 ## Usage & Performance Considerations
 
