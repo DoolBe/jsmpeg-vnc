@@ -45,87 +45,115 @@ var mouseDataBuffer = new ArrayBuffer(12);
 var mouseDataTypeFlags = new Uint16Array(mouseDataBuffer, 0);
 var mouseDataCoords = new Float32Array(mouseDataBuffer, 4);
 
-var sendMouse = function(ev, action) {
+var sendMouse = function(ev, action,dx,dz) {
 	var type = 0;
 	var x, y;
 
-	if( action ) {
-		type |= INPUT_MOUSE_BUTTON;
-		
-		// Attempt to lock pointer at mouse1 down
-		if( mouseLock && action === MOUSE_1_DOWN ) {
-			canvas.requestPointerLock();
-		}
-	}
-	
-	// Only make relative mouse movements if no button is pressed
-	if( !action && mouseLock ) {
-		type |= INPUT_MOUSE_RELATIVE;
-		
-		var p = ev.changedTouches ? ev.changedTouches[0] : ev;
-		
-		// FUCK, DID I MENTION I LOOOOOVE VENDOR PREFIXES? SO USEFUL!
-		x = p.movementX || p.mozMovementX || p.webkitMovementX;
-		y = p.movementY || p.mozMovementY || p.webkitMovementY;
-
-		if( typeof x === 'undefined' ) {
-			x = p.clientX - lastMouse.x;
-			y = p.clientY - lastMouse.y;
-		}
-
-		lastMouse.x = p.clientX;
-		lastMouse.y = p.clientY;
-	}
-
-	// If we send absoulte mouse coords, we can always do so, even for
-	// button presses.
-	if( !mouseLock ) {
-		type |= INPUT_MOUSE_ABSOLUTE;
-		
-		var rect = canvas.getBoundingClientRect();
-		var scaleX = canvas.width / (rect.right-rect.left),
-			scaleY = canvas.height / (rect.bottom-rect.top);
-		
-		var p = event.changedTouches ? ev.changedTouches[0] : ev;
-		var x = (p.clientX - rect.left) * scaleX,
-			y = (p.clientY - rect.top) * scaleY;
-	}
-
-	mouseDataTypeFlags[0] = type;
+	mouseDataTypeFlags[0] = INPUT_MOUSE_ABSOLUTE;//type;
 	mouseDataTypeFlags[1] = (action||0);
-	mouseDataCoords[0] = x;
-	mouseDataCoords[1] = y;
+	mouseDataCoords[0] = 320-dx*320/180;
+	mouseDataCoords[1] = 270+dz*270/90;
 	
 	client.send(mouseDataBuffer);
 	ev.preventDefault();
 };
 
 
-// Keyboard
-window.addEventListener('keydown', function(ev) { sendKey(ev, KEY_DOWN, ev.keyCode); }, false );
-window.addEventListener('keyup', function(ev) { sendKey(ev, KEY_UP, ev.keyCode); }, false );
 
-// Mouse
-canvas.addEventListener('mousemove', function(ev){ sendMouse(ev, null); }, false);
-canvas.addEventListener('mousedown', function(ev){ sendMouse(ev, ev.button == 2 ? MOUSE_2_DOWN : MOUSE_1_DOWN); }, false);
-canvas.addEventListener('mouseup', function(ev){ sendMouse(ev, ev.button == 2 ? MOUSE_2_UP : MOUSE_1_UP); }, false);
-
-// Touch
-canvas.addEventListener('touchstart', function(ev){
-	lastMouse.x = ev.changedTouches[0].clientX;
-	lastMouse.y = ev.changedTouches[0].clientY;
-	sendMouse(ev, MOUSE_1_DOWN);
-}, false);
-canvas.addEventListener('touchend', function(ev){ sendMouse(ev, MOUSE_1_UP); }, false);
-canvas.addEventListener('touchmove', function(ev){ sendMouse(ev, null); }, false);
-
-// Touch buttons emulating keyboard keys
-var defineTouchButton = function( element, keyCode ) {
-	element.addEventListener('touchstart', function(ev){ sendKey(ev, KEY_DOWN, keyCode); }, false);
-	element.addEventListener('touchend', function(ev){ sendKey(ev, KEY_UP, keyCode); }, false);
-};
-
-var touchKeys = document.querySelectorAll('.key');
-for( var i = 0; i < touchKeys.length; i++ ) {
-	defineTouchButton(touchKeys[i], touchKeys[i].dataset.code);
-}
+//ALPHA,BETA,GAMMA
+	var last_alpha=0,last_beta=0,last_gamma=0;
+	var alpha = 0,beta= 0,gamma = 0;
+	var maax = 1, miin = -1;
+	var dx = 0,dy = 0,dz = 0;
+	var t1 =0, alpha_lt180=0;
+	
+	if(window.DeviceOrientationEvent) {
+		window.addEventListener('deviceorientation', function(event) {
+      var alpha = Math.round(event.alpha),gamma = Math.round(event.gamma);
+	  
+	  t1++;
+	  if(t1>6){
+		  t1=0;last_alpha = alpha;last_gamma = gamma;
+	  	  if(last_alpha > 180){	alpha_lt180=1;	}
+	  }	  
+	  if(gamma>0){
+		  dz = gamma - 90;
+	  }else{
+		  dz = gamma + 90;
+	  }	  
+	  if(last_gamma>0){
+		  dz = dz - ( last_gamma - 90);
+	  }else{
+		  dz = dz - ( last_gamma + 90);
+	  }	 
+	  if(last_gamma >0){
+		  if(gamma <0) {
+			  alpha +=180;
+			  if(alpha>360){
+				  alpha -=360;
+			  }
+		}
+	  }else{
+		  if(gamma>0){
+			  alpha +=180;
+			  if(alpha>360){
+				  alpha -=360;
+			  }
+		  }
+	  }
+	  if(alpha_lt180){
+		  if(alpha<(last_alpha-180) && alpha >0 ){
+			  dx = alpha+360 - last_alpha;
+		  }else{
+			  dx = alpha - last_alpha;
+		  }
+	  }else{
+		  if(alpha<361 && alpha >(last_alpha+180) ){
+			  dx = alpha-360 - last_alpha;
+		  }else{
+			  dx = alpha - last_alpha;
+		  }
+	  }
+	  if(dx>miin&&dx<maax  || dx >300){
+		  dx = 0;
+	  }
+	  if(dz>miin&&dz<maax){
+		  dz = 0;
+	  } 
+	  sendMouse(event, null,dx*2,dz*2);
+		}, false);
+  }else{
+  	document.querySelector('body').innerHTML = 'NOT SUPPORT';
+  }
+  
+	var v_backandfor =  0;
+	var larget_ax=0,larget_ay=0,larget_az=0;
+	var forward_flag=0,back_flag=0,left_flag=0,right_flag=0;
+	if(window.DeviceMotionEvent) {
+		window.addEventListener('devicemotion', function(event) {
+      var   
+      		ax = event.acceleration.x *100,
+      		ay = event.acceleration.y *100,
+		  	az = event.acceleration.z *100;
+			
+			if(900<ax){sendKey(event, KEY_DOWN, 32);sendKey(event, KEY_UP, 32);}
+			
+			if(100<az && ( back_flag == 0) ){sendKey(event, KEY_DOWN, 87);forward_flag = 1;}
+			if(-40>az && forward_flag){sendKey(event, KEY_UP, 87);forward_flag = 0;}
+			if(-50<az && az<50 && (/*back_flag||*/forward_flag))
+			{ 	sendKey(event, KEY_UP, 87);forward_flag=0;
+				//sendKey(event, KEY_UP, 83);back_flag=0;
+			}
+			
+			if(-150>ay && ( right_flag == 0) ){sendKey(event, KEY_DOWN, 65);left_flag = 1;}
+			if(90<ay && left_flag){sendKey(event, KEY_UP, 65);left_flag = 0;}
+			if(150<ay && (left_flag== 0)){sendKey(event, KEY_DOWN, 68);right_flag = 1;}
+			if(-90>ay && right_flag){sendKey(event, KEY_UP, 68);right_flag = 0;}
+			if(-70<ay && ay<70 && (right_flag||left_flag))
+			{ sendKey(event, KEY_UP, 65);sendKey(event, KEY_UP, 68);right_flag=0;left_flag=0;}
+			
+		}, false);
+  }else{
+  	document.querySelector('body').innerHTML = 'NOT SUPPORT';
+  }
+	
